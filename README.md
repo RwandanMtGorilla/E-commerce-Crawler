@@ -10,3 +10,5 @@ chrome-win64/chrome.exe
 请先运行test.py 在页面中进行一次访问(有条件可以考虑登录)
 
 随后可正常运行爬虫
+
+结果保存在data文件夹中 包含一个utf-8-sig编码的csv文件 以及用于调试的 单页html信息

@@ -10,10 +10,18 @@ N/A,N/A,N/A,N/A,N/A,N/A,No,N/A
 ```
 我希望你书写一个爬虫脚本 遍历该csv文件 取 Product Name 非 N/A 行的 Product URL进行访问 并获取以下信息
 About
+
+
 Product 
+
+
 information
 
 Top reviews
 
 评论:
 
+
+
+我需要你定位到这些元素 并以新的文件名保存 原csv文件中的其他列也应当保留
+评论及其子信息 单独保存到另一个文件中 需要保留url 商品名列以定位到是哪个商品
