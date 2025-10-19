@@ -104,11 +104,11 @@ def amazon_scrape(keyword, num_pages_to_crawl):
                 price_fraction_element = product_card.find("span", class_="a-price-fraction")
                 price = price_whole_element.text.strip() + price_fraction_element.text.strip() if price_whole_element and price_fraction_element else "N/A"
 
-                rating_element = product_card.find("i", class_="a-icon-star-small")
-                rating = rating_element.text.strip() if rating_element else "N/A"
+                rating_element = product_card.find("a", class_="mvt-review-star-mini-popover")
+                rating = rating_element.get("aria-label") if rating_element else "N/A"
 
-                review_count_element = product_card.find("span", {"aria-label": True}, class_="a-size-base")
-                review_count = review_count_element["aria-label"].split()[0] if review_count_element else "N/A"
+                review_count_element = product_card.find("span", {"aria-hidden": True}, class_="s-underline-text")
+                review_count = review_count_element.text.strip() if review_count_element else "N/A"
 
                 sales_element = product_card.find("span", class_="a-size-base a-color-secondary")
                 sales = sales_element.text.strip() if sales_element else "N/A"
