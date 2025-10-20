@@ -113,7 +113,7 @@ def extract_similar_products(soup):
         if carousel:
             items = carousel.find_all("li", limit=4)
             for idx, item in enumerate(items, 1):
-                link_element = item.find("a", class_="a-link-normal aok-block")
+                link_element = item.find("a", class_="a-link-normal aok-block", attrs={"role": "link"})
                 if link_element:
                     sim_link = "https://www.amazon.com" + link_element.get("href", "")
                     sim_name = link_element.get_text(strip=True)

@@ -344,3 +344,5 @@ def amazon_scrape(keyword, num_pages_to_crawl):
 
 现在，请按照要求 仔细思考 完成代码
 
+关于 similar Product 链接和品名的定位元素 除了a class="a-link-normal aok-block"外 加一个条件为 且 role="link"
+你只需输出需要修改部分的代码
