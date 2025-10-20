@@ -1,6 +1,3 @@
-tkinter
 selenium
-BeautifulSoup4
-selenium
-selenium_stealth
-BeautifulSoup4
+selenium-stealth
+beautifulsoup4

@@ -6,6 +6,13 @@
 chromedriver-win64/chromedriver.exe
 chrome-win64/chrome.exe
 
+```shell
+uv venv
+.venv\Scripts\activate
+uv pip install -r requirements.txt
+
+```
+
 由于亚马逊限制 空白指纹用户将无法正常访问
 请先运行test.py 在页面中进行一次访问(有条件可以考虑登录)
 
