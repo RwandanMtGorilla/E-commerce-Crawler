@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium_stealth import stealth
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 
 # 导入配置
 from config import (
@@ -163,38 +164,102 @@ def extract_reviews(soup):
     return reviews
 
 
+def get_crawled_urls(output_csv):
+    """获取已爬取的URL集合"""
+    crawled_urls = set()
+    if os.path.exists(output_csv):
+        try:
+            with open(output_csv, "r", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    url = row.get("Product URL", "").strip()
+                    if url and url != "N/A":
+                        crawled_urls.add(url)
+            print(f"已从结果文件中读取 {len(crawled_urls)} 个已爬取的URL")
+        except Exception as e:
+            print(f"读取已爬取URL时出错: {e}")
+    return crawled_urls
+
+
+def deduplicate_products(rows):
+    """对产品列表进行去重，保留第一次出现的记录"""
+    seen_urls = set()
+    unique_rows = []
+    duplicate_count = 0
+
+    for row in rows:
+        url = row.get("Product URL", "").strip()
+        # 跳过无效的URL
+        if not url or url == "N/A":
+            continue
+
+        # 如果URL未见过，添加到结果列表
+        if url not in seen_urls:
+            seen_urls.add(url)
+            unique_rows.append(row)
+        else:
+            duplicate_count += 1
+
+    print(f"URL去重完成：原始数据 {len(rows)} 条，去重后 {len(unique_rows)} 条，去除重复 {duplicate_count} 条")
+    return unique_rows
+
+
 def scrape_product_details(input_csv, output_csv, reviews_csv):
     """主函数：爬取商品详情"""
-    driver = setup_driver()
-
-    # 创建输出文件
+    # 创建输出文件夹
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-    # 写入表头
-    with open(output_csv, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=PRODUCT_DETAILS_COLUMNS)
-        writer.writeheader()
+    # 读取输入CSV
+    print("正在读取输入文件...")
+    with open(input_csv, "r", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
 
-    with open(reviews_csv, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=REVIEW_COLUMNS)
-        writer.writeheader()
+    print(f"共读取 {len(rows)} 条数据")
+
+    # 1. URL去重
+    print("\n开始URL去重...")
+    rows = deduplicate_products(rows)
+
+    # 2. 获取已爬取的URL（断点续爬）
+    print("\n检查已爬取的数据...")
+    crawled_urls = get_crawled_urls(output_csv)
+
+    # 过滤掉已爬取的URL
+    rows_to_crawl = [row for row in rows if row.get("Product URL", "").strip() not in crawled_urls]
+
+    print(f"需要爬取 {len(rows_to_crawl)} 条新数据")
+
+    if len(rows_to_crawl) == 0:
+        print("没有新数据需要爬取！")
+        return
+
+    # 如果输出文件不存在，创建并写入表头
+    if not os.path.exists(output_csv):
+        with open(output_csv, "w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.DictWriter(f, fieldnames=PRODUCT_DETAILS_COLUMNS)
+            writer.writeheader()
+
+    if not os.path.exists(reviews_csv):
+        with open(reviews_csv, "w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.DictWriter(f, fieldnames=REVIEW_COLUMNS)
+            writer.writeheader()
+
+    # 启动浏览器
+    print("\n正在启动浏览器...")
+    driver = setup_driver()
 
     try:
-        # 读取输入CSV
-        with open(input_csv, "r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            rows = list(reader)
-
-        for idx, row in enumerate(rows, 1):
+        # 3. 使用tqdm显示进度
+        print("\n开始爬取数据...\n")
+        for row in tqdm(rows_to_crawl, desc="爬取进度", unit="个商品"):
             product_name = row.get("Product Name", "N/A")
             product_url = row.get("Product URL", "N/A")
 
-            # 跳过N/A行
+            # 跳过N/A行（虽然在去重时已过滤，但保险起见再检查）
             if product_name == "N/A" or product_url == "N/A":
-                print(f"跳过第 {idx} 行（Product Name 或 URL 为 N/A）")
+                tqdm.write(f"跳过：Product Name 或 URL 为 N/A")
                 continue
-
-            print(f"正在处理第 {idx} 行: {product_name}")
 
             try:
                 # 访问商品页面
@@ -244,19 +309,20 @@ def scrape_product_details(input_csv, output_csv, reviews_csv):
                         writer = csv.DictWriter(f, fieldnames=REVIEW_COLUMNS)
                         writer.writerow(review_data)
 
-                print(f"第 {idx} 行处理完成，提取了 {len(reviews)} 条评论")
+                tqdm.write(f"✓ {product_name[:50]}... | 提取了 {len(reviews)} 条评论")
 
                 # 随机延迟，避免被封
                 time.sleep(random.uniform(2, 4))
 
             except Exception as e:
-                print(f"处理第 {idx} 行时出错: {e}")
+                tqdm.write(f"✗ 处理失败: {product_name[:50]}... | 错误: {str(e)}")
                 continue
 
-        print(f"所有数据已保存至 '{output_csv}' 和 '{reviews_csv}'")
+        print(f"\n所有数据已保存至 '{output_csv}' 和 '{reviews_csv}'")
 
     finally:
         driver.quit()
+        print("\n浏览器已关闭")
 
 
 if __name__ == "__main__":
