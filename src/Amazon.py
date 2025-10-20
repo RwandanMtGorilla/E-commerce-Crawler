@@ -11,29 +11,35 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium_stealth import stealth
 from bs4 import BeautifulSoup
 
+# 导入配置
+from config import (
+    CHROME_DRIVER_PATH,
+    CHROME_BINARY_PATH,
+    CHROME_USER_DATA_DIR,
+    OUTPUT_FOLDER,
+    CSV_FILE_PATH,
+    CSV_COLUMNS
+)
+
+
 def amazon_scrape(keyword, num_pages_to_crawl):
     # 构造URL
     url = f"https://www.amazon.com/s?k={keyword}"
-    # url = f"https://www.amazon.com/s?k={keyword}&s=exact-aware-popularity-rank&ds=v1%3AJrxMCJNWth3dfHwbNN9hTYbXakEU%2BZvIoDEmaIymF2w&qid=1721664511&ref=sr_st_exact-aware-popularity-rank"
-    # ChromeDriver 的路径
-    driver_path = "chromedriver-win64//chromedriver.exe"
 
     # 创建ChromeOptions对象
     options = Options()
     options.add_argument("--force-device-scale-factor=1")
-    options.add_argument("--disable-blink-features=AutomationControlled")  # 隐藏Selenium特征
-    # Chrome浏览器的路径
-    chrome_path = "chrome-win64/chrome.exe"
-    options.binary_location = chrome_path
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.binary_location = CHROME_BINARY_PATH
 
-    user_data_dir = os.path.abspath("chrome-win64/User Data")
-    os.makedirs(user_data_dir, exist_ok=True)
+    # 确保用户数据目录存在
+    os.makedirs(CHROME_USER_DATA_DIR, exist_ok=True)
+    options.add_argument(f"--user-data-dir={CHROME_USER_DATA_DIR}")
 
-    options.add_argument(f"--user-data-dir={user_data_dir}")
     # 设置ChromeDriver路径
-    service = Service(driver_path)
+    service = Service(CHROME_DRIVER_PATH)
 
-    # 创建一个Selenium WebDriver实例
+    # 创建WebDriver实例
     driver = webdriver.Chrome(service=service, options=options)
 
     # 使用selenium-stealth隐藏特征
@@ -46,14 +52,11 @@ def amazon_scrape(keyword, num_pages_to_crawl):
             fix_hairline=True)
 
     # 创建保存文件夹
-    output_folder = "data"
-    os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
     # 创建CSV文件
-    csv_file_path = os.path.join(output_folder, "amazon_products.csv")
-    csv_columns = ["Product Name", "Product URL", "Price", "Rating", "Review Count", "Sales", "Prime", "Delivery"]
-    with open(csv_file_path, "w", newline="", encoding="utf-8-sig") as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=csv_columns)
+    with open(CSV_FILE_PATH, "w", newline="", encoding="utf-8-sig") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=CSV_COLUMNS)
         writer.writeheader()
 
     try:
@@ -84,7 +87,7 @@ def amazon_scrape(keyword, num_pages_to_crawl):
                 current_scroll = next_scroll
                 page_height = driver.execute_script("return document.body.scrollHeight")
 
-            current_html_path = os.path.join(output_folder, f"amazon_page_{current_page}.html")
+            current_html_path = os.path.join(OUTPUT_FOLDER, f"amazon_page_{current_page}.html")
             with open(current_html_path, "w", encoding="utf-8-sig") as f:
                 f.write(driver.page_source)
 
@@ -94,7 +97,8 @@ def amazon_scrape(keyword, num_pages_to_crawl):
             product_cards = soup.find_all("div", class_="sg-col-inner")
 
             for product_card in product_cards:
-                product_name_element = product_card.find("h2", class_="a-size-base-plus a-spacing-none a-color-base a-text-normal")
+                product_name_element = product_card.find("h2",
+                                                         class_="a-size-base-plus a-spacing-none a-color-base a-text-normal")
                 product_name = product_name_element.text.strip() if product_name_element else "N/A"
 
                 product_url_element = product_card.find("a", class_="a-link-normal s-no-outline")
@@ -119,8 +123,8 @@ def amazon_scrape(keyword, num_pages_to_crawl):
                 delivery_element = product_card.find("span", {"aria-label": True})
                 delivery = delivery_element["aria-label"] if delivery_element else "N/A"
 
-                with open(csv_file_path, "a", newline="", encoding="utf-8-sig") as csv_file:
-                    writer = csv.DictWriter(csv_file, fieldnames=csv_columns)
+                with open(CSV_FILE_PATH, "a", newline="", encoding="utf-8-sig") as csv_file:
+                    writer = csv.DictWriter(csv_file, fieldnames=CSV_COLUMNS)
                     writer.writerow({
                         "Product Name": product_name,
                         "Product URL": product_url,
@@ -133,7 +137,7 @@ def amazon_scrape(keyword, num_pages_to_crawl):
                     })
 
             try:
-                # 等待并定位“下一页”按钮
+                # 等待并定位"下一页"按钮
                 next_page_button = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, ".s-pagination-next"))
                 )
@@ -145,7 +149,6 @@ def amazon_scrape(keyword, num_pages_to_crawl):
                 print("无法找到下一页按钮或下一页按钮不可点击。Exception: " + str(e))
                 break
 
-        print("数据已经存储至'data/amazon_products.csv'.")
+        print(f"数据已经存储至'{CSV_FILE_PATH}'.")
     finally:
         driver.quit()
-

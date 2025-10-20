@@ -5,7 +5,7 @@ import os
 
 driver_path = "chromedriver-win64//chromedriver.exe"
 options = Options()
-chrome_path = "chrome-win64/chrome.exe"
+chrome_path = "chrome-win64//chrome.exe"
 options.binary_location = chrome_path
 
 user_data_dir = os.path.abspath("chrome-win64/User Data")
