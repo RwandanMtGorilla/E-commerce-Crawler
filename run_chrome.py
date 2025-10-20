@@ -2,13 +2,18 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import os
+from config import (
+    CHROME_DRIVER_PATH,
+    CHROME_BINARY_PATH,
+    CHROME_USER_DATA_DIR,
+)
 
-driver_path = "chromedriver-win64//chromedriver.exe"
+driver_path = CHROME_DRIVER_PATH
 options = Options()
-chrome_path = "chrome-win64//chrome.exe"
+chrome_path = CHROME_BINARY_PATH
 options.binary_location = chrome_path
 
-user_data_dir = os.path.abspath("chrome-win64/User Data")
+user_data_dir = CHROME_USER_DATA_DIR
 os.makedirs(user_data_dir, exist_ok=True)
 
 options.add_argument(f"--user-data-dir={user_data_dir}")
