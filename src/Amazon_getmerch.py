@@ -147,7 +147,7 @@ def extract_reviews(soup):
             review_items = review_list.find_all("li")
             for review_item in review_items:
                 # 提取评论内容
-                content_element = review_item.find("span", class_="cr-original-review-content")
+                content_element = review_item.find("div", attrs={"data-hook": "review-collapsed"})
                 content = content_element.get_text(strip=True) if content_element else "N/A"
 
                 # 提取有帮助数
